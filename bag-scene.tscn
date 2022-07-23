@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Bag.gd" type="Script" id=2]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="Bag" type="Node2D" parent="."]
+script = ExtResource( 2 )
+
+[node name="Button" type="Button" parent="."]
+margin_left = 368.0
+margin_top = 31.0
+margin_right = 515.0
+margin_bottom = 51.0
+text = "Randomize inventory"
+
+[connection signal="pressed" from="Button" to="Bag" method="_on_Button_pressed"]

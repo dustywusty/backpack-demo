@@ -75,7 +75,7 @@ func _on_Button_pressed():
 				enabled_slots.append(slot)
 				
 	# unplace everything 
-		# (for now, maybe just wipe all `contains` and set all sprite.modulate to Color(1,1,1))
+		# (for now, just wipe all `contains` and set all sprite.modulate to Color(1,1,1))
 	for slot in enabled_slots:
 		slot.contains = null
 		slot.sprite.modulate = Color(1,1,1)
@@ -99,9 +99,26 @@ func _on_Button_pressed():
 		],
 	}
 	
-	var items = [blue2x1, green1x1]
+	var t_tetrimino = {
+		"color": Color(0.7, 0.7, 0.3),
+		"shape": [
+			Vector2(0, 0),
+			Vector2(1, 0),
+			Vector2(2, 0),
+			Vector2(1, 1),
+		]
+	}
+	
+	
+	var items = [t_tetrimino, blue2x1, green1x1]
+	
 	var rng = RandomNumberGenerator.new()
 	rng.randomize()
+	
+	t_tetrimino = randomize_rotation(t_tetrimino, rng)
+	blue2x1 = randomize_rotation(blue2x1, rng)
+	green1x1 = randomize_rotation(green1x1, rng)
+	
 	
 	# for each item, starting with the largest, pick a random location and see if it fits.
 	
@@ -156,3 +173,99 @@ func find_slot(position: Vector2, slots):
 			return slot
 	
 	return null
+
+# rotates the item 90deg. I'm not doing anything with the clockwise flag for now
+func rotate_item(item, clockwise = true):
+	var minX = INF
+	var minY = INF
+	var maxX = 0
+	var maxY = 0
+	
+	# get outermost bounds
+	for slot in item.shape:
+		if slot.x > maxX:
+			maxX = slot.x
+		if slot.y > maxY:
+			maxY = slot.y
+			
+		if slot.x < minX:
+			minX = slot.x
+		if slot.y < minY:
+			minY = slot.y
+			
+	item.shape = rotate_shape(item.shape, minX, minY, maxX, maxY, clockwise)
+	
+	item.shape = normalize_shape(item.shape)
+	
+	return item
+		
+# recursive fn. rotates the outermost shell, then calls itself on the remainder
+func rotate_shape(shape, minX, minY, maxX, maxY, clockwise = true):
+	# transpose each slot in the current ring, starting with the outermost, and group the rest
+	print("%%%%%%%%%%%%%%%%%%")
+	print(shape)
+	print("----")
+	
+	while minX < maxX or minY < maxY:
+		for index in shape.size():
+			var slot = shape[index]
+			# if we're outside the current ring, skip
+			if slot.x > maxX or slot.x < minX or slot.y > maxY or slot.y < minY:
+				continue
+			# if we're the top row, rotate to the right column, top to bottom
+			if slot.y == minY:
+				shape[index].x = maxX - (maxX - maxY)
+				shape[index].y = slot.x
+			# if we're the right column, rotate to the bottom row, right to left
+			elif slot.x == maxX:
+				shape[index].x = maxY - slot.y
+				shape[index].y = maxY - (maxY - maxX)
+			# if we're the bottom row, rotate to the left column, bottom to top
+			elif slot.y == maxY:
+				shape[index].x = minX - (minX - minY)
+				shape[index].y = slot.x
+			# if we're the left column, rotate to the top row, left to right
+			elif slot.x == minX:
+				shape[index].x = maxY - slot.y
+				shape[index].y = minY - (minY - minX)
+				
+			# otherwise, do nothing
+			var after_slot = shape[index]
+			print(slot, "->", after_slot)
+				
+		minX += 1
+		if minX < maxX:
+			maxX -= 1
+			
+		minY += 1
+		if minY < maxY:
+			maxY -= 1
+	
+	return shape
+		
+func normalize_shape(shape):
+	var minX = INF
+	var minY = INF
+	
+	# find the smallest x and y values in the shape
+	for slot in shape:
+		if slot.x < minX:
+			minX = slot.x
+		if slot.y < minY:
+			minY = slot.y
+	
+	for index in shape.size():
+		shape[index].x -= minX
+		shape[index].y -= minY
+	
+	return shape
+
+func randomize_rotation(item, rng: RandomNumberGenerator):
+	var rotation_count = rng.randi_range(0,3)
+	
+	while(rotation_count):
+		item = rotate_item(item, true)
+		rotation_count -= 1
+		
+	return item
+		
